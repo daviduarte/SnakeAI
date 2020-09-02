@@ -1409,6 +1409,9 @@ current_snake_score = 0
 #screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 try:
+	if not os.path.isdir(os.path.abspath(os.getcwd())+'checkpoints'):
+		os.mkdir('checkpoints')
+
 	os.mkdir('checkpoints/'+str(currentGeneration))
 except FileExistsError:
 	pass
