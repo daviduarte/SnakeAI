@@ -1,5 +1,5 @@
 # SnakeAI
-Training a AI to play Snake using Genetic Algorithm and Artificial Neural Networl
+Training a AI to play Snake using Genetic Algorithm and Artificial Neural Network
 
 
 ## Install
