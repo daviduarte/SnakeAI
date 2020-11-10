@@ -1,34 +1,14 @@
 import pygame
 import time
-import numpy as np
-#from random import randrange
-#from random import uniform
 import random
-import time
 import copy
-from sklearn.preprocessing import normalize
-import os
-import pickle
-import concurrent.futures
-#import torch
-#from google.colab import drive
-
-
-# Import the pygame module
-import pygame
-import time
-import numpy as np
-#from random import randrange
-#from random import uniform
-import random
-import time
-import copy
-from sklearn.preprocessing import normalize
 import os
 import pickle
 import concurrent.futures
 import math
+import numpy as np
 
+from sklearn.preprocessing import normalize
 
 # Import pygame.locals for easier access to key coordinates
 # Updated to conform to flake8 and black standards
@@ -44,8 +24,42 @@ from pygame.locals import (
 )
 
 
-#### Begin Function #####
+individuals = 2000
+current_individual = 0
+currentGeneration = 0
 
+SCREEN_WIDTH = 1050
+SCREEN_HEIGHT = 600
+PIXEL_DIM = 50
+
+INPUT_NEURON = 24
+HIDDEN_NEURON1 = 18
+HIDDEN_NEURON2 = 18
+OUTPUT_NEURON = 4
+MUTATION_PROBABILITY = 5
+
+worm_set = []
+brain_set = []
+initial_food_position = []	# Save initial food position to replay the exacly same game after
+initial_snake_position = [] # Save initial snake position to replay the exacly same game after
+
+movement = 'left'	# Actual worm movement
+last_position = []
+score_set = []
+checkpointTime = time.time()
+
+# Replay the best snake in the end of each generation
+best_snake_brain = []
+best_snake_head = []
+best_snake_food = []
+best_snake_score = float('-inf')
+current_snake_brain = []
+current_snake_head = []
+current_snake_food = []
+current_snake_score = 0
+
+
+#### Begin Function #####
 """
 Given a position in pixel, discovery a new position multiple of PIXEL_DIM (worm dimensions)
 """
@@ -56,18 +70,19 @@ def roundPosition(pos):
 def pixel2position(pix):
 	return pix*PIXEL_DIM
 
+
 def position2pixel(pos):
 	return pos/PIXEL_DIM
 
-"""
- Draw a square 
- @param size_x
- @param size_y
- @param x
- @param y
- """
 
 def drawSquare(size_x, size_y, x, y, color):
+	"""
+		# Draw a square 
+		@param size_x;
+		@param size_y;
+		@param x;
+		@param y;
+	"""
 	# Create a surface and pass in a tuple containing its length and width
 	surf = pygame.Surface((size_x, size_y))
 	# Give the surface a color to separate it from the background
@@ -83,6 +98,7 @@ def drawSquare(size_x, size_y, x, y, color):
 	screen.blit(surf, (x, y))
 	pygame.display.flip()
 
+
 def drawWorm(i):
 
 	global worm_set
@@ -90,17 +106,18 @@ def drawWorm(i):
 	for j in range(len(worm_set[i])-1):
 		drawSquare(50, 50, worm_set[i][j][0]*50, worm_set[i][j][1]*50, 'black')
 
+
 def drawFood():
 
 	global food
 	drawSquare(50, 50, food[0]*50, food[1]*50, 'red')
+
 
 def drawScore(i):
 	myfont = pygame.font.SysFont('Comic Sans MS', 30)
 	textsurface = myfont.render('Score: ' + str(score_set[i]), False, (0, 0, 0))
 	screen.blit(textsurface,(10,10))
 	pygame.display.flip()
-
 
 
 def hitWall(i):
@@ -145,28 +162,22 @@ def movementWormBody(movement, i):
 		#worm_set[i].splice(0, 0, [food[0], food[1]])
 		worm_set[i].insert(0, [food[0], food[1]])
 		return 1
-	
 
 	formerPoint = [worm_set[i][0][0], worm_set[i][0][1]]
 	worm_set[i][0][0] = newPointX
-	worm_set[i][0][1] = newPointY			
-	
+	worm_set[i][0][1] = newPointY
 
 	# In worm body, change the second point position to first point position, the third point position to second point position, and so on
 	for j in range(1, len(worm_set[i])-1): # For each worm's body segment, excluding the status sting, in the last position of array
-	#for (var j = 1; j<worm_set[i].length ; j++):
 		aux = [worm_set[i][j][0], worm_set[i][j][1]]
 		worm_set[i][j][0] = formerPoint[0]
 		worm_set[i][j][1] = formerPoint[1]
-
 		formerPoint = aux
-	
-	
 
-"""
-	Start new worms with random brains
-"""
+
 def newGame():
+	""" Start new worms with random brains """
+
 	global worm_set
 	global score_set
 	global last_position
@@ -180,12 +191,10 @@ def newGame():
 	score_set = []
 	initial_snake_position = []
 	initial_food_position = []
+
 	for i in range(0, individuals):
 
-	#for(var i = 0 ; i < individuals ; i++):
-
 		# Set initial worm value			
-		#initial_point = getRandomVector()
 		initial_point = getRandomVector()
 
 		worm = []
@@ -204,9 +213,7 @@ def newGame():
 		#score = -10
 		zeroScore()
 
-
 	current_individual = 0
-	
 
 
 def zeroScore():
@@ -214,6 +221,7 @@ def zeroScore():
 	score_set = []
 	for i in range(individuals):
 		score_set.append(0)
+
 
 def update(movement, i):
 
@@ -247,8 +255,6 @@ def update(movement, i):
 			movement = "up"
 
 	last_position[i] = movement
-	
-	
 
 	# Moviment the worm
 	eatTheFood = movementWormBody(movement, i)
@@ -257,7 +263,6 @@ def update(movement, i):
 		current_snake_food.append(copy.deepcopy(food))
 		updateScore(i)
 		wormLoop = 0
-
 	
 	if ( hitWall(i) == 1):
 		worm_set[i][len(worm_set[i])-1] = 'dead'
@@ -268,12 +273,13 @@ def update(movement, i):
 		worm_set[i][len(worm_set[i])-1] = "dead"
 		return 'dead'
 
-	
+
 # Get a random vector containing a valid position in screen
 def getRandomVector():
 
 	return [roundPosition(random.randrange(SCREEN_WIDTH)), 
             roundPosition(random.randrange(SCREEN_HEIGHT))]	
+
 
 # TODO: Better way to get valid food position
 def newFoodPosition(i):
@@ -307,11 +313,11 @@ def newFoodPosition(i):
 			currentFood += 1
 		else:
 			food = copy.deepcopy(initial_point)
-	
+
+
 # Verify if the head exists in the same coordinates of some point of the body
 # @return true if Worm hit your own body. His dead :/
 # @return false if Worm NOT hit your own body. His alive :)
-
 def stuckTheBody(i):
 	head = [worm_set[i][0][0], worm_set[i][0][1]]
 
@@ -325,14 +331,15 @@ def stuckTheBody(i):
 	
 
 	return False
-	
 
 
 def updateScore(i):
 	score_set[i] += 1000
 
+
 def updateScoreAlive(i):
 	score_set[i] += 1
+
 
 def draw(i):
 	# Fill the screen with white
@@ -341,6 +348,7 @@ def draw(i):
 	drawWorm(i)
 	drawFood()
 	drawScore(i)
+
 
 # Positive Diagonal line, buttom head
 """
@@ -734,6 +742,7 @@ def border1_body(worm):
 	
 	return 0;
 
+
 """
 *	Up head
 """
@@ -844,6 +853,7 @@ def border4_body(worm):
 		
 	
 	return 0;	
+
 
 """ 
       -------
@@ -960,6 +970,7 @@ def border7_body(worm):
 	
 	return 0;
 
+
 """ 
       -------
 	  -------  
@@ -997,6 +1008,7 @@ def border8_body(worm):
 	
 	return 0;		
 
+
 def normalize_values(input):
 
 	#norm1 = input / np.linalg.norm(input)
@@ -1004,6 +1016,7 @@ def normalize_values(input):
 
 		
 	return norm1
+
 
 def sigmoid(mat, bias):
 
@@ -1057,6 +1070,7 @@ def neural_network_inference(input, i):
 
 	return output
 
+
 # 3 layers, 1 input layer (24 neurons), 1 hidden layer (16 neurons) and 1 output lauer (4 neurons)
 def initialize_neural_network(l1, l2, l3):
 
@@ -1088,9 +1102,6 @@ def initialize_neural_network(l1, l2, l3):
 			l3[i].append(random.uniform(-1,1))
 
 
-		
-
-
 def neural_network():
 
 	global brain_set
@@ -1117,6 +1128,7 @@ def neural_network():
 		brain.append(b3)
 
 		brain_set.append(brain)
+
 
 def saveMostApt(index_fittest1,score_most_fittest):
 	global currentGeneration
@@ -1339,6 +1351,7 @@ def replicate():
 		else:
 			brain_set[i][5] = copy.deepcopy(most_fitted_individual[5])
 
+
 def loadIndividuals():
 	global brain_set
 
@@ -1361,52 +1374,9 @@ def loadIndividuals():
 		brain_set[i*3 + 2] = copy.deepcopy(file3)
 
 
-
 ####### End funcitions #########
-
-
-
 # Initialize pygame
 pygame.init()
-
-individuals = 2000
-current_individual = 0
-currentGeneration = 0
-#currentGeneration = 755
-
-# Define constants for the screen width and height
-SCREEN_WIDTH = 1050
-SCREEN_HEIGHT = 600
-PIXEL_DIM = 50
-
-INPUT_NEURON = 24
-HIDDEN_NEURON1 = 18
-HIDDEN_NEURON2 = 18
-OUTPUT_NEURON = 4
-MUTATION_PROBABILITY = 5
-
-worm_set = []
-brain_set = []
-initial_food_position = []	# Save initial food position to replay the exacly same game after
-initial_snake_position = [] # Save initial snake position to replay the exacly same game after
-
-movement = 'left'	# Actual worm movement
-last_position = []
-score_set = []
-checkpointTime = time.time()
-
-# Replay the best snake in the end of each generation
-best_snake_brain = []
-best_snake_head = []
-best_snake_food = []
-best_snake_score = float('-inf')
-current_snake_brain = []
-current_snake_head = []
-current_snake_food = []
-current_snake_score = 0
-# Create the screen object
-# The size is determined by the constant SCREEN_WIDTH and SCREEN_HEIGHT
-#screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 try:
 	if not os.path.isdir(os.path.abspath(os.getcwd())+'checkpoints'):
@@ -1422,33 +1392,13 @@ neural_network()
 newGame()
 #loadIndividuals()
 food = getRandomVector()
-"""
-# Sem dar load
-"""
+""" Sem dar load """
 seed = initial_food_position[current_individual]
 
 
-"""
- Carregando
-"""
-
-# If we want replay a snake, we must rewrite the position food with the same random state of previously snake
-#brain_set[0] = np.load('checkpoints/0/brain_16.npy', allow_pickle=True).tolist()
-
-#foods = np.load('checkpoints/0/food.npy').tolist()
-#foods = 0
-#worm_set[0] = [np.load('checkpoints/0/head.npy', allow_pickle=True).tolist(), 'alive']
+""" Carregando"""
 replay = 0
-#currentFood = 1
-#food = foods[0]
 food = 0
-"""
-a
-"""
-
-#print(foods)
-#print(worm_set[0])
-#print(current_individual)
 
 #random.seed(seed)
 newFoodPosition(current_individual)
@@ -1456,98 +1406,44 @@ newFoodPosition(current_individual)
 current_snake_food.append(copy.deepcopy(food))
 current_snake_head = copy.deepcopy(worm_set[current_individual][0])
 
-
 # Avoid worm in looping
 wormLoop = 0
-# Variable to keep the main loop running
 running = True
-
-#worm_set = [[[250, 250], [300, 250], [350, 250], [400, 250], [450, 250], [500, 250], [550, 250], [600, 250], [650, 250], [700, 250], [750, 250], [800, 250], [850, 250], [900, 250], [950, 250], [1000, 250], [1000, 200], 'alive']]
-
 oi = 0
-
 
 # Main loop
 while running:
-
-	"""
-	# Look at every event in the queue
-	for event in pygame.event.get():
-
-		# Did the user hit a key?
-		if event.type == KEYDOWN:
-			# Was it the Escape key? If so, stop the loop.
-			if event.key == K_ESCAPE:
-				running = False
-
-			if event.key == pygame.K_w:
-				movement = 'up'
-
-			if event.key == pygame.K_d:
-				movement = 'right'
-
-			if event.key == pygame.K_s:
-				movement = 'down'
-
-			if event.key == pygame.K_a:
-				movement = 'left'
-
-			# Decrease the MUTATION_RATE
-			if event.key == pygame.K_t:				
-				MUTATION_PROBABILITY -= 0.05		
-				print("Abaixando a TAXA DE MUTAÇÃO")
-				print("Valor atual: ")
-				print(str(MUTATION_PROBABILITY))				
-
-			# Decrease the MUTATION_RATE
-			if event.key == pygame.K_y:
-				MUTATION_PROBABILITY += 0.05						
-				print("Aumentando a TAXA DE MUTAÇÃO")
-				print("Valor atual: ")
-				print(str(MUTATION_PROBABILITY))				
-
-			if event.key == pygame.K_q:
-				worm_set[current_individual][len(worm_set[current_individual])-1] = 'dead'
-				current_individual += 1
-				continue
-	    
-
-		# Did the user click the window close button? If so, stop the loop.
-		elif event.type == QUIT:
-			running = False
-	"""
 
 	# Refresh the screen
 	ts = time.time()*1000
 	if (checkpointTime - ts ) < 0:
 
-
-		input = [p1(worm_set[current_individual][0], food),
-		p2(worm_set[current_individual][0], food),
-		p3(worm_set[current_individual][0], food),
-		p4(worm_set[current_individual][0], food),
-		p5(worm_set[current_individual][0], food),
-		p6(worm_set[current_individual][0], food),
-		p7(worm_set[current_individual][0], food),
-		p8(worm_set[current_individual][0], food),
-		border1(worm_set[current_individual][0]),
-		border2(worm_set[current_individual][0]),
-		border3(worm_set[current_individual][0]),
-		border4(worm_set[current_individual][0]),
-		border5(worm_set[current_individual][0]),
-		border6(worm_set[current_individual][0]),
-		border7(worm_set[current_individual][0]),
-		border8(worm_set[current_individual][0]),
-		border1_body(worm_set[current_individual]),
-		border2_body(worm_set[current_individual]),
-		border3_body(worm_set[current_individual]),
-		border4_body(worm_set[current_individual]),
-		border5_body(worm_set[current_individual]),
-		border6_body(worm_set[current_individual]),
-		border7_body(worm_set[current_individual]),
-		border8_body(worm_set[current_individual]),
+		input = [
+			p1(worm_set[current_individual][0], food),
+			p2(worm_set[current_individual][0], food),
+			p3(worm_set[current_individual][0], food),
+			p4(worm_set[current_individual][0], food),
+			p5(worm_set[current_individual][0], food),
+			p6(worm_set[current_individual][0], food),
+			p7(worm_set[current_individual][0], food),
+			p8(worm_set[current_individual][0], food),
+			border1(worm_set[current_individual][0]),
+			border2(worm_set[current_individual][0]),
+			border3(worm_set[current_individual][0]),
+			border4(worm_set[current_individual][0]),
+			border5(worm_set[current_individual][0]),
+			border6(worm_set[current_individual][0]),
+			border7(worm_set[current_individual][0]),
+			border8(worm_set[current_individual][0]),
+			border1_body(worm_set[current_individual]),
+			border2_body(worm_set[current_individual]),
+			border3_body(worm_set[current_individual]),
+			border4_body(worm_set[current_individual]),
+			border5_body(worm_set[current_individual]),
+			border6_body(worm_set[current_individual]),
+			border7_body(worm_set[current_individual]),
+			border8_body(worm_set[current_individual]),
 		]
-
 		
 		output = neural_network_inference(input, current_individual)
 		movement = np.argmax(output)
@@ -1560,29 +1456,20 @@ while running:
 			movement = 'right'
 		else:
 			movement = 'down'
-		
 
 		worm_status = update(movement, current_individual)		
 
-
-
 		# If alread passes some time in the same worm, this means a worm looping
 		if wormLoop >= 200:
-			#print("matando por looping")
 			worm_status = 'dead'
 
 		if worm_status == 'dead':
 
-
 			if score_set[current_individual] > best_snake_score:
-				#print("Atualizando melhor snake")
 				best_snake_brain = copy.deepcopy(brain_set[current_individual])
 				best_snake_head = copy.deepcopy(current_snake_head)
 				best_snake_food = copy.deepcopy(current_snake_food)
 				best_snake_score = score_set[current_individual]
-
-
-
 
 			current_individual += 1
 			wormLoop = 0
@@ -1610,7 +1497,6 @@ while running:
 				current_snake_food.append(copy.deepcopy(food))	
 
 				# A cada iteração diminui a LR em 2%
-				#MUTATION_PROBABILITY -= MUTATION_PROBABILITY*0.005
 				print("NOVA MUTATION RATE: " + str(MUTATION_PROBABILITY))
 
 				continue
@@ -1618,23 +1504,17 @@ while running:
 			# If new individual begins
 			newFoodPosition(current_individual)
 
-
-
-
-			current_snake_head = copy.deepcopy(worm_set[current_individual][0])				
-
+			current_snake_head = copy.deepcopy(worm_set[current_individual][0])
 			current_snake_food = []		
-			current_snake_food.append(copy.deepcopy(food))				
-
+			current_snake_food.append(copy.deepcopy(food))
 
 			continue
 
 		# Update the score for staing alive
 		updateScoreAlive(current_individual)
 		wormLoop += 1
-		#draw(current_individual)
 		
-		checkpointTime = time.time()*1000 #+200
+		checkpointTime = time.time() * 1000
 
 
 
